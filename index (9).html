@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pittsburgh Weather</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F6F9;        /* light background */
+    --gold:#FFB81C;      /* Pittsburgh gold (accents) */
+    --gold-text:#9A6A00; /* gold that reads on light backgrounds */
+    --tile:#FFFFFF;
+    --line:#DCE2E9;
+    --text:#101820;      /* Pittsburgh black */
+    --muted:#5B6773;
+    --rain:#1F78C8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:transparent}
+  body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--text)}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+
+  /* 856 x 559 (about 3:2) at every width, 220px to 900px */
+  .widget{
+    container-type:inline-size;position:relative;overflow:hidden;
+    width:100%;min-width:220px;max-width:900px;margin:0 auto;
+    aspect-ratio:856 / 559;display:flex;flex-direction:column;
+    background:radial-gradient(90% 70% at 85% 0%,#FFF6E0 0%,transparent 60%),var(--bg);
+    box-shadow:inset 0 0 0 1px var(--line);
+    border-radius:clamp(10px,1.6cqi,14px);border-top:clamp(3px,.6cqi,5px) solid var(--gold);
+  }
+  .bridge{position:absolute;left:0;right:0;bottom:0;width:100%;height:auto;opacity:.28;pointer-events:none}
+  .inner{position:relative;flex:1;display:flex;flex-direction:column;padding:3cqi 3.4cqi;gap:2cqi}
+
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .city{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:700;text-transform:uppercase;
+        letter-spacing:.08em;color:var(--gold-text);font-size:clamp(10px,1.7cqi,15px)}
+  h1{font-family:"Barlow Condensed","Arial Narrow",Impact,sans-serif;font-weight:700;text-transform:uppercase;
+     font-size:clamp(16px,4.6cqi,40px);line-height:1}
+  .clock{text-align:right;white-space:nowrap}
+  .time{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:700;font-size:clamp(14px,3.4cqi,30px);line-height:1}
+  .date{color:var(--muted);font-size:clamp(9px,1.5cqi,13px)}
+
+  /* Current conditions */
+  .now{display:grid;grid-template-columns:1.25fr 1fr;gap:2cqi;align-items:center;flex:1;min-height:0}
+  .hero{display:flex;align-items:center;gap:2cqi;min-width:0}
+  .hero .icon{width:clamp(36px,13cqi,116px);aspect-ratio:1;height:auto;flex:0 0 auto}
+  .temp{font-family:"Barlow Condensed","Arial Narrow",Impact,sans-serif;font-weight:700;line-height:.9;
+        font-size:clamp(38px,13cqi,112px);font-variant-numeric:tabular-nums}
+  .temp sup{font-size:.45em;color:var(--gold-text);vertical-align:.95em;margin-left:1px}
+  .cond{font-weight:600;font-size:clamp(11px,2.1cqi,18px);margin-top:.3cqi}
+  .feels{color:var(--muted);font-size:clamp(9px,1.6cqi,14px);margin-top:.2cqi}
+  .stats{display:grid;gap:1cqi}
+  .stat{display:flex;justify-content:space-between;align-items:baseline;gap:8px;background:var(--tile);
+        border:1px solid var(--line);border-radius:clamp(6px,1cqi,9px);padding:1cqi 1.6cqi;font-size:clamp(9px,1.6cqi,14px)}
+  .stat span{color:var(--muted)}
+  .stat b{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  /* Forecast toggle */
+  .fc{display:flex;flex-direction:column;gap:1cqi}
+  .seg{align-self:flex-start;display:inline-flex;background:#E6EAF0;border-radius:999px;padding:2px}
+  .seg button{font-weight:600;font-size:clamp(9px,1.5cqi,13px);padding:.3em 1em;border-radius:999px;color:var(--muted)}
+  .seg button[aria-selected="true"]{background:var(--text);color:#fff}
+  .seg button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+  /* Forecast cards */
+  .days{display:grid;grid-template-columns:repeat(5,1fr);gap:1.2cqi}
+  .day{background:var(--tile);border:1px solid var(--line);border-radius:clamp(6px,1cqi,9px);
+       padding:1cqi .6cqi;text-align:center;min-width:0}
+  .day.today{border-color:var(--gold)}
+  .dn{font-weight:600;font-size:clamp(9px,1.6cqi,14px)}
+  .day.today .dn{color:var(--gold-text)}
+  .day.today{box-shadow:inset 0 0 0 1px var(--gold)}
+  .day .icon{width:clamp(16px,5cqi,44px);aspect-ratio:1;height:auto;display:block;margin:.3cqi auto}
+  .hl{font-size:clamp(9px,1.6cqi,14px);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .hl .lo{color:var(--muted)}
+  .pop{color:var(--rain);font-size:clamp(8px,1.3cqi,12px)}
+
+  .status{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4cqi;
+          color:var(--muted);font-size:clamp(11px,2cqi,16px);text-align:center}
+  .status button{border:1px solid var(--gold-text);color:var(--gold-text);border-radius:999px;padding:.4em 1.1em;font-weight:600}
+  .widget:not(.ready) .now,.widget:not(.ready) .fc{display:none}
+  .widget.ready .status{display:none}
+
+  @container (max-width:560px){
+    .date,.pop{display:none}
+    .now{grid-template-columns:1.4fr 1fr}
+  }
+  @container (max-width:300px){
+    h1{display:none}
+    .city{font-size:12px}
+    .temp{font-size:30px}
+    .hero .icon{width:30px}
+    .cond{font-size:11px}
+    .inner{gap:1.4cqi}
+  }
+  @container (max-width:340px){
+    .stats,.feels{display:none}
+    .now{grid-template-columns:1fr}
+    .days{grid-template-columns:repeat(3,1fr)}
+    .day:nth-child(n+4){display:none}
+    .seg button{padding:.25em .8em}
+  }
+</style>
+</head>
+<body>
+<!-- Weather icons (original artwork) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-sun" viewBox="0 0 64 64"><g stroke="#FFB81C" stroke-width="4" stroke-linecap="round"><path d="M32 4v8M32 52v8M4 32h8M52 32h8M12 12l6 6M46 46l6 6M12 52l6-6M46 18l6-6"/></g><circle cx="32" cy="32" r="12" fill="#FFB81C"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 64 64"><path d="M40 8a24 24 0 1 0 16 38A20 20 0 0 1 40 8z" fill="#6E7C8B"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 64 64"><path d="M18 50h30a11 11 0 0 0 0-22 15 15 0 0 0-29-3A12 12 0 0 0 18 50z" fill="#B7C1CC"/></symbol>
+    <symbol id="i-partly" viewBox="0 0 64 64"><g stroke="#FFB81C" stroke-width="3.5" stroke-linecap="round"><path d="M24 4v6M6 22h6M11 9l4 4M37 9l-4 4"/></g><circle cx="24" cy="23" r="9" fill="#FFB81C"/><path d="M22 54h28a10 10 0 0 0 0-20 14 14 0 0 0-27-3A11 11 0 0 0 22 54z" fill="#B7C1CC"/></symbol>
+    <symbol id="i-partly-n" viewBox="0 0 64 64"><path d="M30 6a16 16 0 1 0 10 27A13 13 0 0 1 30 6z" fill="#6E7C8B"/><path d="M22 56h28a10 10 0 0 0 0-20 14 14 0 0 0-27-3A11 11 0 0 0 22 56z" fill="#A9B4BF"/></symbol>
+    <symbol id="i-fog" viewBox="0 0 64 64"><path d="M18 38h30a10 10 0 0 0 0-20 14 14 0 0 0-27-3A11 11 0 0 0 18 38z" fill="#A9B4BF"/><g stroke="#A9B4BF" stroke-width="4" stroke-linecap="round"><path d="M10 46h40M16 54h38"/></g></symbol>
+    <symbol id="i-rain" viewBox="0 0 64 64"><path d="M18 40h30a10 10 0 0 0 0-20 14 14 0 0 0-27-3A11 11 0 0 0 18 40z" fill="#A9B4BF"/><g stroke="#3B8FD9" stroke-width="4" stroke-linecap="round"><path d="M22 47l-3 8M34 47l-3 8M46 47l-3 8"/></g></symbol>
+    <symbol id="i-snow" viewBox="0 0 64 64"><path d="M18 40h30a10 10 0 0 0 0-20 14 14 0 0 0-27-3A11 11 0 0 0 18 40z" fill="#B7C1CC"/><g fill="#5FA2DD"><circle cx="21" cy="50" r="3"/><circle cx="33" cy="55" r="3"/><circle cx="45" cy="50" r="3"/><circle cx="27" cy="59" r="2.4"/><circle cx="40" cy="60" r="2.4"/></g></symbol>
+    <symbol id="i-storm" viewBox="0 0 64 64"><path d="M18 38h30a10 10 0 0 0 0-20 14 14 0 0 0-27-3A11 11 0 0 0 18 38z" fill="#7D8995"/><path d="M34 40l-8 12h7l-4 10 12-15h-7l4-7z" fill="#FFB81C"/></symbol>
+  </defs>
+</svg>
+
+<section class="widget" id="wx" aria-labelledby="wx-title">
+  <!-- gold arch-bridge motif -->
+  <svg class="bridge" viewBox="0 0 900 120" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 100 H900" stroke="#FFB81C" stroke-width="4"/>
+    <path d="M60 100 Q240 20 420 100 M480 100 Q660 20 840 100" fill="none" stroke="#FFB81C" stroke-width="5"/>
+    <g stroke="#FFB81C" stroke-width="2"><path d="M120 100V69M180 100V52M240 100V45M300 100V52M360 100V69M540 100V69M600 100V52M660 100V45M720 100V52M780 100V69"/></g>
+  </svg>
+
+  <div class="inner">
+    <div class="top">
+      <div><div class="city">Pittsburgh, PA</div><h1 id="wx-title">Weather now</h1></div>
+      <div class="clock"><div class="time" id="time">--:--</div><div class="date" id="date"></div></div>
+    </div>
+
+    <div class="status" id="status" role="status"><span id="status-msg">Loading the latest weather…</span></div>
+
+    <div class="now">
+      <div class="hero">
+        <svg class="icon" viewBox="0 0 64 64" aria-hidden="true"><use id="now-icon" href="#i-sun"/></svg>
+        <div>
+          <div class="temp"><span id="temp">--</span><sup>°F</sup></div>
+          <div class="cond" id="cond"></div>
+          <div class="feels" id="feels"></div>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><span>Wind</span><b id="wind">--</b></div>
+        <div class="stat"><span>Humidity</span><b id="hum">--</b></div>
+        <div class="stat"><span>Rain chance</span><b id="rain">--</b></div>
+      </div>
+    </div>
+
+    <div class="fc">
+      <div class="seg" role="tablist" aria-label="Forecast view">
+        <button role="tab" data-v="hourly">Hourly</button>
+        <button role="tab" data-v="daily">5-Day</button>
+      </div>
+      <div class="days" id="days"></div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+  const LAT = 40.4406, LON = -79.9959, TZ = 'America/New_York';
+  const URL = 'https://api.open-meteo.com/v1/forecast?latitude=' + LAT + '&longitude=' + LON +
+    '&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,is_day' +
+    '&hourly=temperature_2m,weather_code,precipitation_probability,is_day' +
+    '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max' +
+    '&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=' + encodeURIComponent(TZ) + '&forecast_days=5';
+
+  const root = document.getElementById('wx');
+  const $ = id => document.getElementById(id);
+
+  // WMO weather codes -> label + icon
+  function describe(code, day){
+    if (code === 0) return ['Clear', day ? 'i-sun' : 'i-moon'];
+    if (code <= 2) return ['Partly cloudy', day ? 'i-partly' : 'i-partly-n'];
+    if (code === 3) return ['Cloudy', 'i-cloud'];
+    if (code === 45 || code === 48) return ['Fog', 'i-fog'];
+    if (code >= 51 && code <= 57) return ['Drizzle', 'i-rain'];
+    if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return ['Rain', 'i-rain'];
+    if ((code >= 71 && code <= 77) || code === 85 || code === 86) return ['Snow', 'i-snow'];
+    if (code >= 95) return ['Thunderstorms', 'i-storm'];
+    return ['Cloudy', 'i-cloud'];
+  }
+  const compass = deg => ['N','NE','E','SE','S','SW','W','NW'][Math.round(deg / 45) % 8];
+  const r = n => Math.round(n);
+
+  function tickClock(){
+    const now = new Date();
+    $('time').textContent = now.toLocaleTimeString('en-US', {timeZone: TZ, hour:'numeric', minute:'2-digit'});
+    $('date').textContent = now.toLocaleDateString('en-US', {timeZone: TZ, weekday:'long', month:'short', day:'numeric'});
+  }
+
+  function render(d){
+    const c = d.current, dl = d.daily;
+    const [label, icon] = describe(c.weather_code, c.is_day === 1);
+    $('now-icon').setAttribute('href', '#' + icon);
+    $('temp').textContent = r(c.temperature_2m);
+    $('cond').textContent = label;
+    $('feels').textContent = 'Feels like ' + r(c.apparent_temperature) + '° · H ' + r(dl.temperature_2m_max[0]) + '° L ' + r(dl.temperature_2m_min[0]) + '°';
+    $('wind').textContent = r(c.wind_speed_10m) + ' mph ' + compass(c.wind_direction_10m);
+    $('hum').textContent = r(c.relative_humidity_2m) + '%';
+    $('rain').textContent = (dl.precipitation_probability_max[0] ?? 0) + '%';
+
+    last = d;
+    drawForecast();
+    root.classList.add('ready');
+  }
+
+  let last = null, view = 'hourly';
+  try { const v = localStorage.getItem('pgh-wx-view'); if (v === 'hourly' || v === 'daily') view = v; } catch(e){}
+
+  function card(name, today, ic, lbl, main, sub, pop){
+    return '<div class="day' + (today ? ' today' : '') + '"><div class="dn">' + name + '</div>' +
+      '<svg class="icon" viewBox="0 0 64 64" role="img" aria-label="' + lbl + '"><use href="#' + ic + '"/></svg>' +
+      '<div class="hl">' + main + (sub ? ' <span class="lo">' + sub + '</span>' : '') + '</div>' +
+      '<div class="pop">' + pop + '% rain</div></div>';
+  }
+
+  function drawForecast(){
+    if (!last) return;
+    let html = '';
+    if (view === 'daily'){
+      const dl = last.daily;
+      html = dl.time.map((t, i) => {
+        const [y,m,dd] = t.split('-').map(Number);
+        const name = i === 0 ? 'Today' : new Date(y, m-1, dd).toLocaleDateString('en-US', {weekday:'short'});
+        const [lbl, ic] = describe(dl.weather_code[i], true);
+        return card(name, i === 0, ic, lbl, r(dl.temperature_2m_max[i]) + '°', r(dl.temperature_2m_min[i]) + '°', dl.precipitation_probability_max[i] ?? 0);
+      }).join('');
+    } else {
+      const h = last.hourly, nowHour = last.current.time.slice(0, 13);   // "YYYY-MM-DDTHH"
+      let start = h.time.findIndex(t => t.slice(0, 13) >= nowHour);
+      if (start < 0) start = 0;
+      html = h.time.slice(start, start + 5).map((t, k) => {
+        const i = start + k, hr = Number(t.slice(11, 13));
+        const name = k === 0 ? 'Now' : (hr % 12 || 12) + (hr < 12 ? ' AM' : ' PM');
+        const c = last.current;   // "Now" matches the big current reading
+        const code = k === 0 ? c.weather_code : h.weather_code[i], day = k === 0 ? c.is_day === 1 : h.is_day[i] === 1;
+        const temp = k === 0 ? c.temperature_2m : h.temperature_2m[i];
+        const [lbl, ic] = describe(code, day);
+        return card(name, k === 0, ic, lbl, r(temp) + '°', '', h.precipitation_probability[i] ?? 0);
+      }).join('');
+    }
+    $('days').innerHTML = html;
+    document.querySelectorAll('.seg button').forEach(b => {
+      const on = b.dataset.v === view; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1;
+    });
+  }
+
+  document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+    view = b.dataset.v;
+    try { localStorage.setItem('pgh-wx-view', view); } catch(e){}
+    drawForecast();
+  }));
+
+  async function load(){
+    try{
+      const res = await fetch(URL, {cache:'no-store'});
+      if (!res.ok) throw new Error(res.status);
+      render(await res.json());
+    }catch(e){
+      if (!root.classList.contains('ready')){
+        $('status-msg').textContent = 'Weather is unavailable right now.';
+        if (!$('retry')){
+          const b = document.createElement('button'); b.id = 'retry'; b.textContent = 'Try again';
+          b.onclick = () => { $('status-msg').textContent = 'Loading the latest weather…'; b.remove(); load(); };
+          $('status').appendChild(b);
+        }
+      }
+    }
+  }
+
+  tickClock(); setInterval(tickClock, 15 * 1000);
+  load(); setInterval(load, 15 * 60 * 1000);   // refresh every 15 minutes
+})();
+</script>
+</body>
+</html>
